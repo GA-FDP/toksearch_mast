@@ -1,0 +1,17 @@
+schema_version: 1
+name: mast
+description: MAST / MAST-U via the public FAIR MAST Zarr dataset
+locators:
+  - kind: zarr_store
+    name: main
+    protocol: s3
+    base_url: s3://mast/level2/shots
+    file_name_format: "{shot}.zarr"
+    endpoint: https://s3.echo.stfc.ac.uk
+    auth: { kind: none }
+  - kind: http_catalog
+    name: metadata
+    base_url: https://mastapp.site
+    shots_path: parquet/level2/shots
+    signals_path: parquet/level2/signals
+    auth: { kind: none }
