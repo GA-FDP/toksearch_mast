@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=61", "versioneer[toml]"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "toksearch_mast"
+dynamic = ["version"]
+description = "TokSearch MAST: signal retrieval for MAST/MAST-U via FAIR MAST"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+# Runtime deps come from recipe/recipe.yaml (ga-fdp conda channel); keep
+# this empty so pip/pixi's pypi resolver doesn't fetch toksearch from PyPI.
+dependencies = []
+
+[tool.setuptools]
+packages = ["toksearch_mast", "toksearch_mast.data", "toksearch_mast.signal"]
+zip-safe = false
+
+[tool.setuptools.package-data]
+"toksearch_mast.data" = ["*.yaml"]
+
+[tool.versioneer]
+VCS = "git"
+style = "pep440"
+versionfile_source = "toksearch_mast/_version.py"
+versionfile_build = "toksearch_mast/_version.py"
+tag_prefix = "release-"
+parentdir_prefix = "toksearch_mast-"
+
+[project.entry-points."fdp_schema.catalogs"]
+mast = "toksearch_mast.data:mast_yaml"

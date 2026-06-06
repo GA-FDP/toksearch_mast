@@ -1,0 +1,25 @@
+[workspace]
+name = "toksearch_mast"
+channels = ["ga-fdp", "conda-forge"]
+platforms = ["linux-64"]
+
+[dependencies]
+python = ">=3.11,<3.13"
+toksearch = ">=2.8.0"
+fdp = ">=0.2.1"
+fdp-schema = ">=0.1.2"
+xarray = "*"
+zarr = "3.*"
+fsspec = "*"
+s3fs = "*"
+aiohttp = "*"
+pandas = "*"
+pyarrow = "*"
+matplotlib = "*"
+pytest = "*"
+setuptools = "*"
+pip = "*"
+versioneer = "*"
+
+[pypi-dependencies]
+toksearch_mast = { path = ".", editable = true }
