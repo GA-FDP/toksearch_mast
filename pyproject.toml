@@ -30,3 +30,8 @@ parentdir_prefix = "toksearch_mast-"
 
 [project.entry-points."fdp_schema.catalogs"]
 mast = "toksearch_mast.data:mast_yaml"
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: hits the live FAIR MAST endpoint (network required)",
+]
