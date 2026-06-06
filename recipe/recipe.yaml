@@ -35,6 +35,11 @@ requirements:
   run:
     - python
     - toksearch >=2.8.0
+    # RELEASE COUPLING: these must be the ga-fdp releases that carry the new
+    # zarr_store/http_catalog locator kinds (fdp-schema) and the locator-driven
+    # env API + ZarrStore/HttpCatalog resolvers (fdp), from the mast-fdp-device
+    # work. Bump these floors to those release versions at publish time;
+    # against older releases the catalog/env tests below cannot pass.
     - fdp >=0.2.1
     - fdp-schema >=0.1.2
     - xarray
@@ -46,10 +51,17 @@ requirements:
 tests:
   - script:
       content:
-        - python -c "import toksearch_mast"
+        # Run the package's unit suite (network-free); the live FAIR MAST
+        # test is excluded via the `integration` marker.
+        - python -m pytest tests/ -v -m "not integration"
+    files:
+      source:
+        - tests/
     requirements:
       run:
+        - pytest
         - fdp >=0.2.1
+        - fdp-schema >=0.1.2
 
 about:
   license: Apache-2.0
