@@ -14,12 +14,15 @@ from . import _version
 __version__ = _version.get_versions()["version"]
 
 from .signal.mast import MastSignal
+from .signal.imas import MastImasSignal, list_imas_paths
 from .metadata import list_shots, list_signals
 from .fdp import setup_environment
 
 __all__ = [
     "__version__",
     "MastSignal",
+    "MastImasSignal",
+    "list_imas_paths",
     "list_shots",
     "list_signals",
     "setup_environment",
