@@ -49,3 +49,31 @@ def test_multidim_dims_passthrough():
         ):
             sig = MastSignal("thomson/te", dims=("times", "radius"))
     assert tuple(sig.dims) == ("times", "radius")
+
+
+def test_times_to_ms_helper_converts_and_sets_units():
+    import numpy as np
+    from toksearch_mast.signal.mast import _times_to_ms
+    res = {"times": np.array([0.0, 0.1, 0.2]),
+           "units": {"data": "A", "times": "s"}}
+    _times_to_ms(res)
+    assert list(res["times"]) == [0.0, 100.0, 200.0]
+    assert res["units"]["times"] == "ms"
+
+
+def test_times_to_ms_noop_without_times_key():
+    from toksearch_mast.signal.mast import _times_to_ms
+    res = {"data": [1, 2, 3]}
+    _times_to_ms(res)  # no 'times' key → no error, no change
+    assert "times" not in res
+
+
+def test_time_in_ms_flag_stored():
+    with mock.patch.dict(os.environ, _env(), clear=False):
+        with mock.patch(
+            "toksearch_mast.signal.mast._make_fs", return_value="FS"
+        ):
+            default = MastSignal("summary/ip")
+            opted_out = MastSignal("summary/ip", time_in_ms=False)
+    assert default.time_in_ms is True
+    assert opted_out.time_in_ms is False

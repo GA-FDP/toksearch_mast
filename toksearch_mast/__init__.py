@@ -50,16 +50,18 @@ MastSignal
 ==========
 
 Fetches a FAIR MAST level-2 signal by its ``'group/signal'`` path into the
-Zarr store.  Times are in **seconds** (unlike DIII-D's milliseconds)::
+Zarr store.  FAIR MAST stores time in seconds, but ``times`` is returned in
+**milliseconds** by default to match the toksearch convention (DIII-D/PtData);
+pass ``time_in_ms=False`` for native seconds::
 
     sig = MastSignal("summary/ip")
     result = sig.fetch(30420)
-    # result: {'data': ndarray, 'times': ndarray (seconds), 'units': dict}
+    # result: {'data': ndarray, 'times': ndarray (ms), 'units': dict}
 
 Constructor::
 
     MastSignal(treepath, dims=('times',), fetch_units=True,
-               base_url=None, protocol=None, endpoint=None)
+               base_url=None, protocol=None, endpoint=None, time_in_ms=True)
 
 - ``treepath``: ``'group/signal'``, e.g. ``'summary/ip'``,
   ``'magnetics/ip'``, ``'thomson_scattering/te'``.
@@ -86,7 +88,7 @@ attribute — no ``imas_composer`` needed.  This is the MAST analogue of
 
     sig = MastImasSignal("summary.global_quantities.ip")
     result = sig.fetch(30420)
-    # result: {'data': ndarray, 'times': ndarray (seconds), 'units': dict}
+    # result: {'data': ndarray, 'times': ndarray (ms), 'units': dict}
 
 Constructor::
 

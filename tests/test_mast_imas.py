@@ -46,8 +46,20 @@ def test_resolves_variable_by_imas_attr():
     assert oz.call_args.kwargs.get("group") == "summary"
     assert list(result["data"]) == [1.0, 2.0, 3.0]      # the 'ip' variable
     assert "times" in result
-    assert list(result["times"]) == [0.0, 0.1, 0.2]
+    # default: store seconds [0, 0.1, 0.2] -> ms [0, 100, 200]
+    assert list(result["times"]) == [0.0, 100.0, 200.0]
     assert result["units"]["data"] == "A"
+    assert result["units"]["times"] == "ms"
+
+
+def test_time_in_ms_false_keeps_seconds():
+    with mock.patch.dict(os.environ, _env(), clear=False):
+        sig = MastImasSignal("summary.global_quantities.ip", time_in_ms=False)
+        with mock.patch("toksearch_mast.signal.imas.xr.open_zarr",
+                        return_value=_fake_summary_ds()):
+            result = sig.gather(30421)
+    assert list(result["times"]) == [0.0, 0.1, 0.2]      # native seconds
+    assert result["units"]["times"] == "s"
 
 
 def test_no_match_raises_with_available_paths():

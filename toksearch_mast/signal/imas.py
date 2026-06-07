@@ -16,7 +16,7 @@ import zarr
 import xarray as xr
 from toksearch import Signal
 
-from .mast import _make_fs
+from .mast import _make_fs, _times_to_ms
 
 
 def _open_shot_group(base_url, file_name_format, protocol, endpoint, shot, group):
@@ -37,18 +37,22 @@ class MastImasSignal(Signal):
             The IDS (group) is the first dotted component.
         dims: output dim names mapped onto the variable's dims, in order.
             Default ``('times',)`` renames the store's first (time) dim to
-            ``times`` (toksearch convention). Time values are in seconds.
+            ``times`` (toksearch convention).
         fetch_units: include a ``'units'`` entry. Default True.
+        time_in_ms: convert the ``times`` axis from the store's seconds to
+            milliseconds (toksearch convention). Default True.
         base_url/protocol/endpoint: explicit overrides; default to the
             ``MAST_ZARR_*`` environment variables.
     """
 
     def __init__(self, imas_path, dims=("times",), fetch_units=True,
-                 base_url=None, protocol=None, endpoint=None):
+                 base_url=None, protocol=None, endpoint=None,
+                 time_in_ms=True):
         super().__init__()
         self.imas_path = imas_path
         self.ids = imas_path.split(".")[0]
         self.with_units = fetch_units
+        self.time_in_ms = time_in_ms
         self.base_url = base_url or os.environ["MAST_ZARR_BASE_URL"]
         self.protocol = protocol or os.environ.get("MAST_ZARR_PROTOCOL", "s3")
         self.endpoint = endpoint or os.environ.get("MAST_ZARR_ENDPOINT")
@@ -80,6 +84,8 @@ class MastImasSignal(Signal):
                 if dim in ds:
                     units[new_dim] = ds[dim].attrs.get("units", "")
             result["units"] = units
+        if self.time_in_ms:
+            _times_to_ms(result)
         return result
 
     def cleanup_shot(self, shot):

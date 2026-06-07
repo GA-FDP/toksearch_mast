@@ -28,6 +28,19 @@ def _make_fs(protocol, endpoint=None):
     raise ValueError(f"Unsupported zarr protocol {protocol!r}")
 
 
+def _times_to_ms(result, key="times"):
+    """Convert the time axis in a gather() result from seconds (FAIR MAST's
+    native unit) to milliseconds (the toksearch convention, matching
+    DIII-D/PtData). No-op if ``key`` is absent. Updates the units entry too.
+    """
+    if key in result:
+        result[key] = result[key] * 1000.0
+        units = result.get("units")
+        if isinstance(units, dict):
+            units[key] = "ms"
+    return result
+
+
 class MastSignal(ZarrSignal):
     """Fetch a FAIR MAST level-2 signal as a toksearch Signal.
 
@@ -36,8 +49,10 @@ class MastSignal(ZarrSignal):
     ``MAST_ZARR_PROTOCOL``, ``MAST_ZARR_ENDPOINT``,
     ``MAST_ZARR_FILE_NAME_FORMAT``.
 
-    Note: FAIR MAST time axes are in **seconds** (unlike DIII-D's
-    milliseconds); the returned ``times`` array is in seconds.
+    Note: FAIR MAST stores time axes in **seconds**, but by default this
+    signal returns ``times`` in **milliseconds** to match the toksearch
+    convention (DIII-D/PtData). Pass ``time_in_ms=False`` to keep the
+    store's native seconds.
 
     Args:
         treepath: ``'group/signal'``, e.g. ``'summary/ip'``.
@@ -46,16 +61,20 @@ class MastSignal(ZarrSignal):
             (time) dimension to ``times`` (toksearch convention). Override
             for multi-dim signals, e.g. ``('times', 'radius')``.
         fetch_units: include a ``'units'`` entry. Default True.
+        time_in_ms: convert the ``times`` axis from the store's seconds to
+            milliseconds. Default True.
         base_url, protocol, endpoint: explicit overrides; default to the
             ``MAST_ZARR_*`` environment variables.
     """
 
     def __init__(self, treepath, dims=("times",), fetch_units=True,
-                 base_url=None, protocol=None, endpoint=None):
+                 base_url=None, protocol=None, endpoint=None,
+                 time_in_ms=True):
         base_url = base_url or os.environ["MAST_ZARR_BASE_URL"]
         protocol = protocol or os.environ.get("MAST_ZARR_PROTOCOL", "s3")
         endpoint = endpoint or os.environ.get("MAST_ZARR_ENDPOINT")
         fname = os.environ.get("MAST_ZARR_FILE_NAME_FORMAT", "{shot}.zarr")
+        self.time_in_ms = time_in_ms
         super().__init__(
             path=base_url,
             treepath=treepath,
@@ -64,3 +83,9 @@ class MastSignal(ZarrSignal):
             file_name_format=fname,
             fs=_make_fs(protocol, endpoint),
         )
+
+    def gather(self, shot):
+        result = super().gather(shot)
+        if self.time_in_ms:
+            _times_to_ms(result)
+        return result
