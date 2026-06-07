@@ -14,10 +14,11 @@ requires-python = ">=3.11"
 dependencies = []
 
 [tool.setuptools]
-packages = ["toksearch_mast", "toksearch_mast.data", "toksearch_mast.signal"]
+packages = ["toksearch_mast", "toksearch_mast.data", "toksearch_mast.llm", "toksearch_mast.signal"]
 zip-safe = false
 
 [tool.setuptools.package-data]
+toksearch_mast = ["skills/*/SKILL.md"]
 "toksearch_mast.data" = ["*.yaml"]
 
 [tool.versioneer]
@@ -27,6 +28,12 @@ versionfile_source = "toksearch_mast/_version.py"
 versionfile_build = "toksearch_mast/_version.py"
 tag_prefix = "release-"
 parentdir_prefix = "toksearch_mast-"
+
+[project.entry-points."toksearch.llm.skills"]
+toksearch_mast = "toksearch_mast.llm:skills_path"
+
+[project.entry-points."toksearch.llm.namespace"]
+toksearch_mast = "toksearch_mast"
 
 [project.entry-points."fdp_schema.catalogs"]
 mast = "toksearch_mast.data:mast_yaml"
