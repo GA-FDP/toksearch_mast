@@ -8,6 +8,28 @@ import fsspec
 from toksearch import ZarrSignal
 
 
+_ENV_NOT_SET_HINT = (
+    "{var} is not set, so the MAST environment is not configured. Call "
+    "toksearch_mast.setup_environment() (or run under `fdp run`) before "
+    "fetching MAST data. If you already did and still see this, your installed "
+    "`fdp` may predate zarr_store/http_catalog support — update to an `fdp` "
+    "release whose setup_environment emits MAST_* env vars."
+)
+
+
+def _require_mast_env(var):
+    """Return ``os.environ[var]``, or raise an actionable error if unset.
+
+    Turns a bare ``KeyError`` into guidance pointing at ``setup_environment``
+    / ``fdp run`` (and the possibility of an older ``fdp`` that doesn't emit
+    the MAST contract).
+    """
+    try:
+        return os.environ[var]
+    except KeyError:
+        raise RuntimeError(_ENV_NOT_SET_HINT.format(var=var)) from None
+
+
 def _make_fs(protocol, endpoint=None):
     """Build the fsspec filesystem for a zarr_store protocol.
 
@@ -70,7 +92,7 @@ class MastSignal(ZarrSignal):
     def __init__(self, treepath, dims=("times",), fetch_units=True,
                  base_url=None, protocol=None, endpoint=None,
                  time_in_ms=True):
-        base_url = base_url or os.environ["MAST_ZARR_BASE_URL"]
+        base_url = base_url or _require_mast_env("MAST_ZARR_BASE_URL")
         protocol = protocol or os.environ.get("MAST_ZARR_PROTOCOL", "s3")
         endpoint = endpoint or os.environ.get("MAST_ZARR_ENDPOINT")
         fname = os.environ.get("MAST_ZARR_FILE_NAME_FORMAT", "{shot}.zarr")

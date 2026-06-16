@@ -12,14 +12,16 @@ connect_d3drdb().
 import os
 import pandas as pd
 
+from .signal.mast import _require_mast_env
+
 
 def _catalog_url() -> str:
-    return os.environ["MAST_CATALOG_URL"]
+    return _require_mast_env("MAST_CATALOG_URL")
 
 
 def list_shots() -> pd.DataFrame:
     """Return the FAIR MAST shot metadata table as a DataFrame."""
-    url = f"{_catalog_url()}/{os.environ['MAST_CATALOG_SHOTS_PATH']}"
+    url = f"{_catalog_url()}/{_require_mast_env('MAST_CATALOG_SHOTS_PATH')}"
     return pd.read_parquet(url)
 
 

@@ -37,3 +37,14 @@ def test_list_signals_without_path_raises():
     with mock.patch.dict(os.environ, env, clear=True):
         with pytest.raises(RuntimeError):
             list_signals(30421)
+
+
+def test_list_shots_without_env_raises_actionable_error():
+    # No MAST_* env at all: should point the user at setup_environment,
+    # not raise a bare KeyError.
+    with mock.patch.dict(os.environ, {}, clear=True):
+        with pytest.raises(RuntimeError) as exc:
+            list_shots()
+    msg = str(exc.value)
+    assert "setup_environment" in msg
+    assert "MAST_CATALOG_URL" in msg

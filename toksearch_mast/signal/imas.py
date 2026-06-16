@@ -16,7 +16,7 @@ import zarr
 import xarray as xr
 from toksearch import Signal
 
-from .mast import _make_fs, _times_to_ms
+from .mast import _make_fs, _times_to_ms, _require_mast_env
 
 
 def _open_shot_group(base_url, file_name_format, protocol, endpoint, shot, group):
@@ -53,7 +53,7 @@ class MastImasSignal(Signal):
         self.ids = imas_path.split(".")[0]
         self.with_units = fetch_units
         self.time_in_ms = time_in_ms
-        self.base_url = base_url or os.environ["MAST_ZARR_BASE_URL"]
+        self.base_url = base_url or _require_mast_env("MAST_ZARR_BASE_URL")
         self.protocol = protocol or os.environ.get("MAST_ZARR_PROTOCOL", "s3")
         self.endpoint = endpoint or os.environ.get("MAST_ZARR_ENDPOINT")
         self.file_name_format = os.environ.get(
@@ -104,7 +104,7 @@ def list_imas_paths(shot, ids=None):
     """
     import pandas as pd
 
-    base_url = os.environ["MAST_ZARR_BASE_URL"]
+    base_url = _require_mast_env("MAST_ZARR_BASE_URL")
     protocol = os.environ.get("MAST_ZARR_PROTOCOL", "s3")
     endpoint = os.environ.get("MAST_ZARR_ENDPOINT")
     fname = os.environ.get("MAST_ZARR_FILE_NAME_FORMAT", "{shot}.zarr")

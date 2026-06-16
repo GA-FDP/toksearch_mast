@@ -1,5 +1,6 @@
 import os
 from unittest import mock
+import pytest
 from toksearch_mast import MastSignal
 
 
@@ -66,6 +67,17 @@ def test_times_to_ms_noop_without_times_key():
     res = {"data": [1, 2, 3]}
     _times_to_ms(res)  # no 'times' key → no error, no change
     assert "times" not in res
+
+
+def test_missing_env_raises_actionable_error():
+    # No MAST_ZARR_BASE_URL and no explicit base_url: actionable error,
+    # not a bare KeyError.
+    with mock.patch.dict(os.environ, {}, clear=True):
+        with pytest.raises(RuntimeError) as exc:
+            MastSignal("summary/ip")
+    msg = str(exc.value)
+    assert "setup_environment" in msg
+    assert "MAST_ZARR_BASE_URL" in msg
 
 
 def test_time_in_ms_flag_stored():
