@@ -38,10 +38,10 @@ requirements:
     # RELEASE COUPLING: these must be the ga-fdp releases that carry the new
     # zarr_store/http_catalog locator kinds (fdp-schema) and the locator-driven
     # env API + ZarrStore/HttpCatalog resolvers (fdp), from the mast-fdp-device
-    # work. Bump these floors to those release versions at publish time;
-    # against older releases the catalog/env tests below cannot pass.
-    - fdp >=0.2.1
-    - fdp-schema >=0.1.2
+    # work. Floors bumped to the published versions verified against at the
+    # 0.1.0 release; against older releases the catalog/env tests cannot pass.
+    - fdp >=0.3.0
+    - fdp-schema >=0.2.1
     - xarray
     - zarr >=3
     - fsspec
@@ -60,8 +60,8 @@ tests:
     requirements:
       run:
         - pytest
-        - fdp >=0.2.1
-        - fdp-schema >=0.1.2
+        - fdp >=0.3.0
+        - fdp-schema >=0.2.1
 
 about:
   license: Apache-2.0
