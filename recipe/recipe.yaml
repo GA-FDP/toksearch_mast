@@ -32,8 +32,20 @@ requirements:
     - setuptools
     - pip
     - versioneer
+  # rattler-build 0.39 synthesises a python run-export of
+  # `python 3.12.* *_debug_cpython` from a host python whose build string is
+  # plainly `h5f976f7_2_cpython`. conda-forge declares no python run-export on
+  # any 3.12.14 build, and the python_abi export beside it is correct, so the
+  # `debug_` prefix is invented by the tool -- and the resulting package is
+  # uninstallable because no such python exists.
+  #
+  # Ignore the synthesised export and state the constraint from the variant.
+  # python_abi still pins the ABI, so packages stay version-specific.
+  ignore_run_exports:
+    by_name:
+      - python
   run:
-    - python
+    - python ${{ python }}
     - toksearch >=2.8.0
     # RELEASE COUPLING: these must be the ga-fdp releases that carry the new
     # zarr_store/http_catalog locator kinds (fdp-schema) and the locator-driven
