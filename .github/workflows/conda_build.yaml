@@ -49,17 +49,44 @@ jobs:
           pixi global install rattler-build
           cd recipe && bash run_build.sh ${HOME}/outdir
 
+      - name: The built version must match the tag
+        # versioneer derives the version from `git describe`, which picks ONE
+        # tag when a commit carries several. During the pilot, staging-0.1.1
+        # and staging-0.1.2 sat on the same commit, describe chose 0.1.1, and
+        # the job uploaded 0.1.1 under a 0.1.2 tag -- after which the retire
+        # step treated the just-published artifact as superseded and filed it
+        # in the attic. Nothing noticed.
+        if: startsWith(github.ref, 'refs/tags/staging-')
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/staging-}"
+          shopt -s nullglob
+          built=(${HOME}/outdir/*/*-${VERSION}-*.conda)
+          if [ ${#built[@]} -eq 0 ]; then
+            echo "::error::tag says ${VERSION}, but nothing of that version was built."
+            echo "::error::Usually: this commit carries another staging- tag and"
+            echo "::error::git describe chose it. Tag a fresh commit."
+            ls -la ${HOME}/outdir/*/ || true
+            exit 1
+          fi
+          printf 'ARTIFACTS<<EOF\n%s\nEOF\n' "$(printf '%s\n' "${built[@]}")" >> $GITHUB_ENV
+          echo "version ${VERSION}: ${#built[@]} artifact(s)"
+
       - name: Upload to staging
         if: startsWith(github.ref, 'refs/tags/staging-')
         run: |
           # Always staging. The old rc/a/b test is gone: a pre-release is now
           # simply a staging tag that never earns a release tag.
-          rattler-build upload anaconda \
-            --owner ga-fdp \
-            --channel staging \
-            --api-key ${{ secrets.ANACONDA_API_TOKEN }} \
-            --force \
-            ${HOME}/outdir/*/*.conda
+          #
+          # Uploads exactly the artifacts the guard above matched, not a bare
+          # glob: a stray build of another version must not ride along.
+          echo "$ARTIFACTS" | while read -r f; do
+            [ -n "$f" ] && rattler-build upload anaconda \
+              --owner ga-fdp \
+              --channel staging \
+              --api-key ${{ secrets.ANACONDA_API_TOKEN }} \
+              --force \
+              "$f"
+          done
 
       - name: Retire the superseded staging candidate
         # AFTER the upload, never before: retiring first would leave staging
@@ -74,8 +101,7 @@ jobs:
           ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_API_TOKEN }}
         run: |
           VERSION="${GITHUB_REF#refs/tags/staging-}"
-          pixi global install anaconda-client
-          python .github/scripts/retire_staging.py \
+          python .github/scripts/channel_tools.py retire \
             toksearch_mast "${VERSION}" "${RUNNER_TEMP}/attic"
 
       - name: Keep the retired bytes off-channel
@@ -90,8 +116,9 @@ jobs:
           retention-days: 90
 
   promote:
-    # No build. `anaconda move` relabels the artifact that was already built
-    # and verified, so what users install is what the gate checked.
+    # No build. Promotion RELABELS the artifact that was already built and
+    # verified, so what users install is what the gate checked. A rebuild
+    # here would destroy the only property promotion exists to provide.
     if: startsWith(github.ref, 'refs/tags/release-')
     runs-on: ubuntu-latest
     defaults:
@@ -101,44 +128,13 @@ jobs:
       ANACONDA_API_TOKEN: ${{ secrets.ANACONDA_API_TOKEN }}
       PKG: toksearch_mast
     steps:
-      - uses: prefix-dev/setup-pixi@v0.8.1
-        with:
-          pixi-version: latest
-          run-install: false
+      - uses: actions/checkout@v4
 
       - name: Move staging -> main
         run: |
           VERSION="${GITHUB_REF#refs/tags/release-}"
-          # A shell variable does not survive into the next step, and
-          # github.ref_name is "release-0.1.2" rather than "0.1.2".
-          echo "VERSION=${VERSION}" >> $GITHUB_ENV
-          pixi global install anaconda-client
-          # `binstar`, not `anaconda`: anaconda-client declares only binstar
-          # and conda-server as console scripts. `anaconda` belongs to
-          # anaconda-cli-base, a dependency, which pixi installs but does not
-          # expose.
-          binstar -t "$ANACONDA_API_TOKEN" move \
-            --from-label staging --to-label main \
-            "ga-fdp/${PKG}/${VERSION}"
-
-      - name: Verify it landed on main and left staging
-        run: |
-          python - <<'PY'
-          import json, os, sys, urllib.request
-          version, pkg = os.environ["VERSION"], os.environ["PKG"]
-          tok = os.environ["ANACONDA_API_TOKEN"]
-          req = urllib.request.Request(
-              f"https://api.anaconda.org/package/ga-fdp/{pkg}",
-              headers={"Authorization": "token " + tok})
-          labels = set()
-          for f in json.load(urllib.request.urlopen(req))["files"]:
-              if f["version"] == version:
-                  labels |= set(f.get("labels") or [])
-          print(f"{pkg} {version} labels: {sorted(labels)}")
-          if "main" not in labels:
-              sys.exit("promotion did not reach main")
-          if "staging" in labels:
-              sys.exit("still on staging: it copied rather than moved, so "
-                       "staging now holds two versions and a later solve "
-                       "could take the wrong one")
-          PY
+          # NOT `anaconda move`: it ignores the version and moves everything
+          # in the source label. See fdp-core spec section 4.2. channel_tools
+          # labels per FILE, verifies by reading back, and refuses if any
+          # other version's labels changed.
+          python .github/scripts/channel_tools.py promote "${PKG}" "${VERSION}"
