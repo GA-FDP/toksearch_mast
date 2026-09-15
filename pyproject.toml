@@ -26,7 +26,11 @@ VCS = "git"
 style = "pep440"
 versionfile_source = "toksearch_mast/_version.py"
 versionfile_build = "toksearch_mast/_version.py"
-tag_prefix = "release-"
+# Two events, one version: see
+# fdp-core/docs/specs/2026-09-15-staging-and-promotion.md section 3.
+# `staging-X.Y.Z` builds the package; `release-X.Y.Z` promotes those exact
+# bytes and must NOT rebuild, so versioneer reads the staging tag.
+tag_prefix = "staging-"
 parentdir_prefix = "toksearch_mast-"
 
 [project.entry-points."toksearch.llm.skills"]
