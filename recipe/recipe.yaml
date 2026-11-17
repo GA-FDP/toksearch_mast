@@ -37,7 +37,8 @@ requirements:
     - pip
     - versioneer
   run:
-    - python >=3.11,<3.13
+    # No CMF here, so this follows toksearch's own builds (3.11-3.14).
+    - python >=3.11,<3.15
     - toksearch >=2.8.0
     # RELEASE COUPLING: these must be the ga-fdp releases that carry the new
     # zarr_store/http_catalog locator kinds (fdp-schema) and the locator-driven
